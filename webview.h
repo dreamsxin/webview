@@ -538,6 +538,11 @@ public:
     webkit_web_view_load_uri(WEBKIT_WEB_VIEW(m_webview), url.c_str());
   }
 
+  void add_close_listener(std::function<bool()> callback) {
+    g_signal_connect(m_window, "delete-event", G_CALLBACK(on_close), this);
+    closeCallback = std::move(callback);
+  }
+
   void init(const std::string js) {
     WebKitUserContentManager *manager =
         webkit_web_view_get_user_content_manager(WEBKIT_WEB_VIEW(m_webview));
@@ -553,9 +558,14 @@ public:
   }
 
 private:
-  virtual void on_message(const std::string msg) = 0;
   GtkWidget *m_window;
   GtkWidget *m_webview;
+  virtual void on_message(const std::string msg) = 0;
+  std::function<bool()> closeCallback = 0;
+
+  static gboolean on_close(GtkWidget *self, GdkEvent *event, gpointer arg) {
+    return static_cast<gtk_webkit_engine *>(arg)->closeCallback();
+  }
 };
 
 using browser_engine = gtk_webkit_engine;
